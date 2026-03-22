@@ -18,20 +18,38 @@ Key requirements:
 
 ## 📂 Repository Structure
 ```
-k8s/
-├── deployments/
-│   ├── user-service.yaml
-│   ├── product-service.yaml
-│   ├── order-service.yaml
-│   └── gateway-service.yaml
-├── services/
-│   ├── user-service.yaml
-│   ├── product-service.yaml
-│   ├── order-service.yaml
-│   └── gateway-service.yaml
-├── ingress/              
-│   └── ingress.yaml
-skillassessment2-README.md
+C:\herovired\skillAssessment2\Microservices-Task
+│   .gitignore
+│   LICENSE
+│   README.md
+│   skillassignment1-README.md
+│
+├── screenshots/
+│   ├── pods.png
+│   ├── logs.png
+│   └── service-test.png
+│
+└── Microservices/
+    │   docker-compose.yml
+    │   package-lock.json
+    │
+    ├── gateway-service/
+    ├── order-service/
+    ├── product-service/
+    ├── user-service/
+    │
+    └── k8s/
+        ├── deployments/
+        │   ├── user-service.yaml
+        │   ├── product-service.yaml
+        │   ├── order-service.yaml
+        │   └── gateway-service.yaml
+        │
+        └── services/
+            ├── user-service.yaml
+            ├── product-service.yaml
+            ├── order-service.yaml
+            └── gateway-service.yaml
 ```
 
 ---
