@@ -1,0 +1,45 @@
+apiVersion: networking.k8s.io/v1   # API group and version for Ingress resources
+kind: Ingress                      # We are creating an Ingress object
+metadata:
+  name: microservices-ingress      # Name of the Ingress resource
+  namespace: skillassessment2      # Namespace where this Ingress will live
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /   # Annotation for NGINX ingress controller to rewrite paths
+
+spec:
+  ingressClassName: nginx           # Specify the ingress class (depends on your cluster setup)
+  rules:                           # Routing rules section
+  - host: microservices.local      # Hostname to match (must be added in your /etc/hosts or Windows hosts file)
+    http:
+      paths:                       # Path-based routing rules
+      - path: /users           # Requests starting with /api/users
+        pathType: Prefix           # Prefix means "match anything that starts with this path"
+        backend:
+          service:
+            name: user-service     # Forward traffic to the user-service
+            port:
+              number: 3000         # Service port exposed by user-service
+
+      - path: /products        # Requests starting with /api/products
+        pathType: Prefix
+        backend:
+          service:
+            name: product-service  # Forward traffic to the product-service
+            port:
+              number: 3001
+
+      - path: /orders          # Requests starting with /api/orders
+        pathType: Prefix
+        backend:
+          service:
+            name: order-service    # Forward traffic to the order-service
+            port:
+              number: 3002
+
+      - path: /                    # Default catch-all path
+        pathType: Prefix
+        backend:
+          service:
+            name: gateway-service  # Forward traffic to the gateway-service
+            port:
+              number: 3003
