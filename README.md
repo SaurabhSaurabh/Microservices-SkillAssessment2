@@ -229,6 +229,142 @@ kubectl logs -n skillassessment2 <user-service-pod-name>
 
 ---
 
+### 🌐 Ingress Setup
+
+This section explains how to configure **NGINX Ingress** to expose microservices under a single domain.
+
+---
+
+#### 1️⃣ Prerequisites
+- Kubernetes cluster running (Docker Desktop, Minikube, etc.).
+- NGINX Ingress Controller installed:
+  ```bash
+  kubectl get pods -n ingress-nginx
+  ```
+  ![ingress](./screenshots/ingress.png)
+
+- Update your hosts file to resolve the custom domain:
+
+  **Windows**: `C:\Windows\System32\drivers\etc\hosts`  
+  Add:
+  ```
+  127.0.0.1 microservices.local
+  ```
+  ![hosts](./screenshots/hosts.png)
+
+---
+
+#### 2️⃣ Create Ingress Resource
+Create `ingress.yaml`:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: microservices-ingress
+  namespace: skillassessment2
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: microservices.local
+    http:
+      paths:
+      - path: /users
+        pathType: Prefix
+        backend:
+          service:
+            name: user-service
+            port:
+              number: 3000
+      - path: /products
+        pathType: Prefix
+        backend:
+          service:
+            name: product-service
+            port:
+              number: 3001
+      - path: /orders
+        pathType: Prefix
+        backend:
+          service:
+            name: order-service
+            port:
+              number: 3002
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gateway-service
+            port:
+              number: 3003
+```
+
+##### Apply:
+```bash
+kubectl apply -f .\Microservices\k8s\ingress\ingress.yml -n skillassessment2
+```
+![ingress-apply](./screenshots/ingress-apply.png)
+
+
+---
+
+#### 3️⃣ Verify Ingress
+Check rules:
+```bash
+kubectl get ingress -n skillassessment2
+kubectl describe ingress microservices-ingress -n skillassessment2
+```
+![ingress-get](./screenshots/ingress-get.png)
+![ingress-describe](./screenshots/ingress-describe.png)
+
+---
+
+#### 4️⃣ Test Endpoints
+Open browser or run:
+```bash
+http://microservices.local/api/users
+http://microservices.local/api/products
+http://microservices.local/api/orders
+http://microservices.local/health
+```
+
+Expected output:
+- `/api/users` → JSON list of users  
+- `/api/products` → JSON list of products  
+- `/api/orders` → JSON list of orders  or blank if no order
+- `/health` → Gateway service response  
+
+![ingress-users](./screenshots/ingress-users.png)
+![ingress-products](./screenshots/ingress-products.png)
+![ingress-orders](./screenshots/ingress-orders.png)
+![ingress-gateway](./screenshots/ingress-gateway.png)
+
+#### 🔄 Parallel request/response flow through Ingress
+This diagram shows how traffic travels into the cluster and how the response comes back through the same path.
+```
+Request Flow (Client → Pod)              Response Flow (Pod → Client)
+---------------------------              ----------------------------
+Browser (http://microservices.local)     Browser
+        |                                        ^
+        v                                        |
+Ingress (NGINX)                          Ingress (NGINX)
+  - Matches /api/users                   - Forwards response to Browser
+  - Rewrites -> /users                          ^
+        |                                        |
+        v                                        |
+Kubernetes Service (user-service:3000)   Kubernetes Service
+  - ClusterIP forwards to Pod            - Passes response back to Ingress
+        |                                        ^
+        v                                        |
+User Service Pod                          User Service Pod
+  - Node.js app serves /users             - Returns JSON [{id:1,name:"John Doe"},...]
+
+```
+
+---
+
 ## ⚠️ Troubleshooting & Errors Faced
 
 1. **InvalidImageName**  
@@ -251,13 +387,36 @@ kubectl logs -n skillassessment2 <user-service-pod-name>
 5. **kubectl connected to remote EKS cluster**  
    - Cause: Context was set to AWS EKS.  
    - Fix: Switched back with `kubectl config use-context docker-desktop`.
+     
+6.  **Ingress Not Working / 503 Service Temporarily Unavailable**
+    - Cause: Ingress controller not picking up rules.
+    - Fix:
+        - Ensure NGINX ingress controller is running
+          ```
+              kubectl get pods -n ingress-nginx
+          ```
+        - Add ingressClassName: nginx in your Ingress spec.
+        - Verify services and endpoints exist:
+            ```
+                kubectl get svc -n skillassessment2   
+                kubectl get endpoints -n skillassessment2
+            ```
+7. **Cannot GET /**  
+   - Cause: Path mismatch between Ingress and service.
+   - Fix:
+   - If using /api/... externally, add rewrite annotation:
+     ```
+     annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+     ```
+     - Ensure service actually serves /users, /products, /orders.
+     - Example: /api/users → Ingress rewrites to /users.
 
 ---
 
 ## ✅ Deliverables
 - **Deployment YAMLs** for all services.  
-- **Service YAMLs** for all services.  
+- **Service YAMLs** for all services.
+- **ingress YAML** having mapping of all services. 
 - **README.md** with setup, testing, troubleshooting, and screenshots.  
 - **Screenshots** showing pods, logs, and service tests.  
-
-Would you like me to also add a **Bonus Task (Ingress)** section at the end as a placeholder, so you can extend later without restructuring?
