@@ -1,4 +1,4 @@
-# 🐳 Microservices Containerization Task
+# ☸️ Microservices Kubernetes Deployment Task
 
 ## 📌 Problem Analysis
 You are provided with source code for **four Node.js microservices**:
@@ -7,218 +7,239 @@ You are provided with source code for **four Node.js microservices**:
 - **Order Service** (Port 3002)  
 - **Gateway Service** (Port 3003)  
 
-The challenge is to **containerize** each service using Docker and orchestrate them with Docker Compose.  
+The challenge is to **containerize** each service, push images to DockerHub, and orchestrate them with **Kubernetes**.  
 Key requirements:
-- Each service must have its own **Dockerfile**.
-- A single **docker-compose.yml** must define and run all services.
-- Services should communicate over a shared Docker network.
-- Documentation must include setup, testing, troubleshooting, and screenshots.
-
----
-## Details of Services and Endpoints
-
-### **User Service**
-- **Base URL:** `http://localhost:3000`
-- **Endpoints:**
-  - **List Users:**  
-    ```
-    curl http://localhost:3000/users
-    ```
-    Or open in your browser: [http://localhost:3000/users](http://localhost:3000/users)
+- Each service must have its own **Deployment manifest**.  
+- Each service must have a corresponding **Service manifest**.  
+- Services should communicate via **ClusterIP service discovery**.  
+- Documentation must include setup, testing, troubleshooting, and screenshots.  
 
 ---
 
-### **Product Service**
-- **Base URL:** `http://localhost:3001`
-- **Endpoints:**
-  - **List Products:**  
-    ```
-    curl http://localhost:3001/products
-    ```
-    Or open in your browser: [http://localhost:3001/products](http://localhost:3001/products)
-
----
-
-### **Order Service**
-- **Base URL:** `http://localhost:3002`
-- **Endpoints:**
-  - **List Orders:**  
-    ```
-    curl http://localhost:3002/orders
-    ```
-    Or open in your browser: [http://localhost:3002/orders](http://localhost:3002/orders)
-
----
-
-### **Gateway Service**
-- **Base URL:** `http://localhost:3003/api`
-- **Endpoints:**
-  - **Users:**  
-    ```
-    curl http://localhost:3003/api/users
-    ```
-  - **Products:**  
-    ```
-    curl http://localhost:3003/api/products
-    ```
-  - **Orders:**  
-    ```
-    curl http://localhost:3003/api/orders
-    ```
-
----
-
-## Instructions
-1. Start all services using the `docker-compose` file:
-   ```
-   docker-compose up
-   ```
-2. Once the services are running, use the above endpoints to verify the functionality.
-
-Happy testing!
-
-
----
-
-
-## 🚀 Solution Implementation (Step-by-Step)
-
-### Step 1: Microservices local testing
-
-Test each services locally to confirm If sourcecode is working fine and then proceed for Dockerfile creation.
-
-Go inside each service and execute below 
+## 📂 Repository Structure
 ```
-npm install
-
-node app.js
-```
-![Workspace](./screenshots/local_gateway.png)
-
-
-### Step 2: Repository Structure
-```
-submission/
-├── user-service/
-│   └── Dockerfile
-├── product-service/
-│   └── Dockerfile
-├── order-service/
-│   └── Dockerfile
-├── gateway-service/
-│   └── Dockerfile
-├── docker-compose.yml
-└── README.md
-```
-
-![Workspace](./screenshots/folder-structure.png)
-
-We will follow above shown structure for Dockerfile creation. 
-
----
-
-### Step 3: Dockerfile Creation
-Each service has a similar Dockerfile pattern:
-
-```dockerfile
-# Example: User Service
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-EXPOSE 3000
-CMD ["node", "app.js"]
-```
-
-Repeat for **Product Service (3001)**, **Order Service (3002)**, and **Gateway Service (3003)** with correct ports.
-
----
-
-### Step 4: Docker Compose Configuration
-Create a `docker-compose.yml`:
-
-```yaml
-version: "3.8"
-services:
-  user-service:
-    build: ./user-service
-    ports:
-      - "3000:3000"
-    networks:
-      - microservices-net
-
-  product-service:
-    build: ./product-service
-    ports:
-      - "3001:3001"
-    networks:
-      - microservices-net
-
-  order-service:
-    build: ./order-service
-    ports:
-      - "3002:3002"
-    networks:
-      - microservices-net
-
-  gateway-service:
-    build: ./gateway-service
-    ports:
-      - "3003:3003"
-    networks:
-      - microservices-net
-
-networks:
-  microservices-net:
-    driver: bridge
+k8s/
+├── deployments/
+│   ├── user-service.yaml
+│   ├── product-service.yaml
+│   ├── order-service.yaml
+│   └── gateway-service.yaml
+├── services/
+│   ├── user-service.yaml
+│   ├── product-service.yaml
+│   ├── order-service.yaml
+│   └── gateway-service.yaml
+├── ingress/              
+│   └── ingress.yaml
+skillassessment2-README.md
 ```
 
 ---
 
-### Step 5: Local Testing & Validation
-1. Build and start containers:
-   ```bash
-   docker-compose up --build
-   ```
+## 🚀 Solution Implementation (Step‑by‑Step)
+
+### Step 1: Kubernetes Setup
+Switch context to Docker Desktop Kubernetes:
+```bash
+kubectl config use-context docker-desktop
+kubectl get nodes
+```
+Create a dedicated namespace:
+```bash
+kubectl create namespace skillassessment2
+```
+
+---
+
+### Step 2: Deployments
+Each Deployment manifest includes:
+- Correct DockerHub image reference (`dockerprogrammer/skillassessment2:<service>`)
+- Resource limits and requests
+- Environment variables (`NODE_ENV=production`)
+- Liveness and readiness probes
+- Labels and selectors
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: product-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: product-service
+  template:
+    metadata:
+      labels:
+        app: product-service
+    spec:
+      containers:
+        - name: product-service
+          image: dockerprogrammer/skillassessment2:product-service
+          ports:
+            - containerPort: 3001
+          env:
+            - name: NODE_ENV
+              value: "production"
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+          livenessProbe:
+            httpGet: 
+              path: /health
+              port: 3001
+            initialDelaySeconds: 30
+            periodSeconds: 10 
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 5
+```
+
+#### ⚠️ Mandatory Step
+👉 **Create deployment files for all microservices.**  
+Create deployment file for other services. You can copy paste above and change the occurance of product-service with your service name and also change the respective port number.
+
+---
+
+### Step 3: Services
+Each Service manifest includes:
+- Correct ports (3000–3003)
+- ClusterIP type for internal discovery
+- Selectors matching Deployment labels
   
-![docker-compose-build-log](./screenshots/docker-compose-build-log.png)
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: product-service
+spec:
+  selector:
+    app: product-service
+  ports:
+    - protocol: TCP
+      port: 3001
+      targetPort: 3001  
+  type: ClusterIP
 
-   
-2. Verify services:
-   - User Service → `http://localhost:3000`
-   - Product Service → `http://localhost:3001`
-   - Order Service → `http://localhost:3002`
-   - Gateway Service → `http://localhost:3003`
+```
+
+#### ⚠️ Mandatory Step
+👉 **Create service files for all microservices.**  
+Create service file for other services. You can copy paste above and change the occurance of product-service with your service name and also change the port accordingly.
 
 
-![user-service-local](./screenshots/users.png)
-![product-service-local](./screenshots/products.png)
-![order-service-local](./screenshots/orders.png)
-![gateway-service-local](./screenshots/gateway.png)
+#### Execution(apply all deployments):
+```bash
+kubectl apply -f Microservices/k8s/deployments/ -n skillassessment2
+```
+
+#### Execution(apply all services):
+```bash
+kubectl apply -f Microservices/k8s/services/ -n skillassessment2
+```
+
+#### Verification:
+```bash
+kubectl get pods -n skillassessment2
+kubectl get svc -n skillassessment2
+```
+#### Pods Running
+![Pods Output](./screenshots/pods.png)
+
+#### Services Running
+![Pods Output](./screenshots/services.png)
+
 
 ---
 
-### Step 6: Troubleshooting Tips
-- **Port conflicts**: Ensure ports 3000–3003 are free before running.
-- **Dependency errors**: Run `npm install` locally to confirm `package.json` is valid.
-- **Container logs**: Use `docker-compose logs -f <service-name>` to debug.
-- **Rebuild images**: If changes don’t reflect, run:
-  ```bash
-  docker-compose build --no-cache
-  ```
+### Step 4: Internal Testing
+Run a debug pod with curl:
+```bash
+kubectl run curlpod -n skillassessment2 --rm -it --image=curlimages/curl -- sh
+```
 
-If you see that the services are stuck as shown below then check if you have used RUN inside Dockerfile 
-``` RUN["node", "app.js"] ``` 
+Inside curlpod:
+```bash
+curl user-service:3000/users
+curl product-service:3001/products
+curl order-service:3002/orders
+```
 
-Instead we need to use   
+---
 
-``` CMD["node", "app.js"] ```   
-![problem1](./screenshots/problem1.png)
+### Step 5: External Testing
+Expose Gateway service via port-forward:
+```bash
+kubectl port-forward -n skillassessment2 svc/gateway-service 3003:3003
+```
+#### port forwarding
+![Port forwarding](./screenshots/port-forwarding.png)
+
+
+From local machine:
+
+#### http://localhost:3003/api/users
+![service](./screenshots/users.png)
+
+#### http://localhost:3003/api/products
+![service](./screenshots/products.png)
+
+#### http://localhost:3003/api/orders
+![service](./screenshots/orders.png)
+
+#### http://localhost:3003/api/health
+![service](./screenshots/gateway.png)
+
+---
+
+### Step 6: Logs Validation
+```bash
+kubectl logs -n skillassessment2 <gateway-pod-name>
+kubectl logs -n skillassessment2 <user-service-pod-name>
+```
+
+#### logs
+![service](./screenshots/logs.png)
+
+---
+
+## ⚠️ Troubleshooting & Errors Faced
+
+1. **InvalidImageName**  
+   - Cause: Wrong image references in Deployment YAMLs.  
+   - Fix: Corrected to match DockerHub tags (`dockerprogrammer/skillassessment2:<service>`).
+   - Also removed latest at the end.
+
+2. **Service YAML using `apps/v1`**  
+   - Cause: Services mistakenly defined with `apiVersion: apps/v1`.  
+   - Fix: Changed to `apiVersion: v1`.
+
+3. **Pods stuck at `0/1 Running`**  
+   - Cause: Readiness/Liveness probes pointing to non-existent `/health` and `/ready`.  
+   - Fix: Checked codebase for each service and found /health endpoint and utilized same for all services. Updated probes to point to actual endpoints (`/health`, `/health`, `/health`, `/health`).
+
+4. **curl not found inside service containers**  
+   - Cause: Slim Node.js images don’t include curl.  
+   - Fix: Used a debug pod (`curlimages/curl`) for internal testing.
+
+5. **kubectl connected to remote EKS cluster**  
+   - Cause: Context was set to AWS EKS.  
+   - Fix: Switched back with `kubectl config use-context docker-desktop`.
 
 ---
 
 ## ✅ Deliverables
-- **Dockerfiles** for all services.
-- **docker-compose.yml** orchestrating all services.
-- **README.md** with setup, testing, troubleshooting, and screenshots.
+- **Deployment YAMLs** for all services.  
+- **Service YAMLs** for all services.  
+- **README.md** with setup, testing, troubleshooting, and screenshots.  
+- **Screenshots** showing pods, logs, and service tests.  
+
+Would you like me to also add a **Bonus Task (Ingress)** section at the end as a placeholder, so you can extend later without restructuring?
