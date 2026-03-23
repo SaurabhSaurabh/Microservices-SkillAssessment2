@@ -229,6 +229,7 @@ kubectl logs -n skillassessment2 <user-service-pod-name>
 
 ---
 
+
 ### 🌐 Ingress Setup
 
 This section explains how to configure **NGINX Ingress** to expose microservices under a single domain.
@@ -362,6 +363,36 @@ User Service Pod                          User Service Pod
   - Node.js app serves /users             - Returns JSON [{id:1,name:"John Doe"},...]
 
 ```
+
+
+---
+
+### 🛑 Stop All Resources in Namespace
+
+To stop all microservices under `skillassessment2`:
+
+#### Delete namespace (removes everything)
+```
+kubectl delete namespace skillassessment2
+```
+
+OR 
+
+#### Delete all resources but keep namespace
+```
+kubectl delete all --all -n skillassessment2
+kubectl delete configmap --all -n skillassessment2
+kubectl delete secret --all -n skillassessment2
+```
+
+OR
+
+#### Scale down deployments (keep definitions)
+```
+kubectl scale deployment --all --replicas=0 -n skillassessment2
+```
+
+
 
 ---
 
