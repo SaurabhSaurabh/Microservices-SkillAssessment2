@@ -347,12 +347,12 @@ This diagram shows how traffic travels into the cluster and how the response com
 ```
 Request Flow (Client → Pod)              Response Flow (Pod → Client)
 ---------------------------              ----------------------------
-Browser (http://microservices.local)     Browser
+Browser (http://microservices.local)          Browser
         |                                        ^
         v                                        |
 Ingress (NGINX)                          Ingress (NGINX)
   - Matches /api/users                   - Forwards response to Browser
-  - Rewrites -> /users                          ^
+  - Rewrites -> /users                           ^
         |                                        |
         v                                        |
 Kubernetes Service (user-service:3000)   Kubernetes Service
@@ -378,12 +378,15 @@ kubectl delete namespace skillassessment2
 
 OR 
 
-#### Delete all resources but keep namespace
+#### Delete all resources but keep namespace (RECOMMENDED)
 ```
 kubectl delete all --all -n skillassessment2
 kubectl delete configmap --all -n skillassessment2
 kubectl delete secret --all -n skillassessment2
 ```
+
+![cleanup](./screenshots/cleanup.png)
+
 
 OR
 
